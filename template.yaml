@@ -1,45 +1,99 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  CICD_Pipeline
+Description: Serverless Notes API using Lambda, API Gateway, and DynamoDB
 
-  Sample SAM Template for CICD_Pipeline
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 10
+    Runtime: python3.12
 
-    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
-    LoggingConfig:
-      LogFormat: JSON
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  NotesTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      CodeUri: hello_world/
+      TableName: Notes
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  CreateNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: notes_function/
       Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-      - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: Notes
+      Environment:
+        Variables:
+          TABLE_NAME: Notes
       Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        CreateNoteApi:
+          Type: Api
           Properties:
-            Path: /hello
+            Path: /notes
+            Method: post
+
+  GetNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_note/
+      Handler: app.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: Notes
+      Environment:
+        Variables:
+          TABLE_NAME: Notes
+      Events:
+        GetNoteApi:
+          Type: Api
+          Properties:
+            Path: /notes/{id}
             Method: get
 
+  UpdateNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_note/
+      Handler: app.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: Notes
+      Environment:
+        Variables:
+          TABLE_NAME: Notes
+      Events:
+        UpdateNoteApi:
+          Type: Api
+          Properties:
+            Path: /notes/{id}
+            Method: put
+
+  DeleteNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: delete_note/
+      Handler: app.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: Notes
+      Environment:
+        Variables:
+          TABLE_NAME: Notes
+      Events:
+        DeleteNoteApi:
+          Type: Api
+          Properties:
+            Path: /notes/{id}
+            Method: delete
+
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World 
-      function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/hello/"
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
