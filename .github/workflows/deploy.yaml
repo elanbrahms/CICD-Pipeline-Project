@@ -13,21 +13,26 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
-      - name: Set up AWS SAM CLI
-        uses: aws-actions/setup-sam@v2
+      - name: Install AWS SAM CLI
+        run: pip install aws-sam-cli
+
+      - name: Verify SAM
+        run: sam --version
 
       - name: Configure AWS credentials from OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::583543841419:role/GitHubActions
           aws-region: us-east-1
