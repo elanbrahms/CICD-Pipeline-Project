@@ -22,11 +22,35 @@ def lambda_handler(event, context):
 
     body = json.loads(event["body"])
 
-    note_id = str(uuid.uuid4())
+    content = body.get("content")
+    custom_id = body.get("id")
+
+    if not content:
+        return {
+            "statusCode": 400,
+            "headers": CORS_HEADERS,
+            "body": json.dumps({"message": "Missing content"})
+        }
+
+    if custom_id and str(custom_id).strip():
+        note_id = str(custom_id).strip()
+    else:
+        note_id = str(uuid.uuid4())
+
+    existing_note = table.get_item(Key={"id": note_id}).get("Item")
+    if existing_note:
+        return {
+            "statusCode": 409,
+            "headers": CORS_HEADERS,
+            "body": json.dumps({
+                "message": "A note with that ID already exists",
+                "id": note_id
+            })
+        }
 
     item = {
         "id": note_id,
-        "content": body["content"]
+        "content": content
     }
 
     table.put_item(Item=item)
