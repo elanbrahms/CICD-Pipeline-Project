@@ -5,7 +5,20 @@ import os
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["TABLE_NAME"])
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT,DELETE"
+}
+
 def lambda_handler(event, context):
+    if event.get("httpMethod") == "OPTIONS":
+        return {
+            "statusCode": 200,
+            "headers": CORS_HEADERS,
+            "body": ""
+        }
+
     note_id = event["pathParameters"]["id"]
     body = json.loads(event["body"])
 
@@ -14,6 +27,7 @@ def lambda_handler(event, context):
     if not content:
         return {
             "statusCode": 400,
+            "headers": CORS_HEADERS,
             "body": json.dumps({"message": "Missing content"})
         }
 
@@ -28,6 +42,7 @@ def lambda_handler(event, context):
 
     return {
         "statusCode": 200,
+        "headers": CORS_HEADERS,
         "body": json.dumps({
             "message": "Note updated",
             "note": response["Attributes"]
